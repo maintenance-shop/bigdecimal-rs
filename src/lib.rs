@@ -46,8 +46,8 @@
 #![allow(clippy::redundant_field_names)]
 
 pub extern crate num_bigint;
-pub extern crate num_traits;
 extern crate num_integer;
+pub extern crate num_traits;
 
 #[cfg(feature = "serde")]
 extern crate serde;
@@ -399,7 +399,8 @@ impl BigDecimal {
                 BigDecimal::try_from(res).unwrap()
             } else {
                 // can't guess with float - just guess magnitude
-                let scale = (self.int_val.bits() as f64 / -LOG2_10 + self.scale as f64).round() as i64;
+                let scale =
+                    (self.int_val.bits() as f64 / -LOG2_10 + self.scale as f64).round() as i64;
                 BigDecimal::new(BigInt::from(1), scale / 2)
             }
         };
@@ -471,7 +472,8 @@ impl BigDecimal {
                 BigDecimal::try_from(res).unwrap()
             } else {
                 // can't guess with float - just guess magnitude
-                let scale = (self.int_val.bits() as f64 / LOG2_10 - self.scale as f64).round() as i64;
+                let scale =
+                    (self.int_val.bits() as f64 / LOG2_10 - self.scale as f64).round() as i64;
                 BigDecimal::new(BigInt::from(1), -scale / 3)
             }
         };
@@ -490,7 +492,12 @@ impl BigDecimal {
                 max_precision + 1,
             );
             let tmp = tmp + r.double();
-            impl_division(tmp.int_val, &three.int_val, tmp.scale - three.scale, max_precision + 1)
+            impl_division(
+                tmp.int_val,
+                &three.int_val,
+                tmp.scale - three.scale,
+                max_precision + 1,
+            )
         };
 
         // result initial
@@ -635,7 +642,12 @@ impl BigDecimal {
             term *= self;
             factorial *= n;
             // ∑ term=x^n/n!
-            result += impl_division(term.int_val.clone(), &factorial, term.scale, 117 + precision);
+            result += impl_division(
+                term.int_val.clone(),
+                &factorial,
+                term.scale,
+                117 + precision,
+            );
 
             let trimmed_result = result.with_prec(105);
             if prev_result == trimmed_result {
@@ -1153,7 +1165,9 @@ impl<'a> SubAssign<&'a BigInt> for BigDecimal {
     fn sub_assign(&mut self, rhs: &BigInt) {
         match self.scale.cmp(&0) {
             Ordering::Equal => SubAssign::sub_assign(&mut self.int_val, rhs),
-            Ordering::Greater => SubAssign::sub_assign(&mut self.int_val, rhs * ten_to_the(self.scale as u64)),
+            Ordering::Greater => {
+                SubAssign::sub_assign(&mut self.int_val, rhs * ten_to_the(self.scale as u64))
+            }
             Ordering::Less => {
                 self.int_val *= ten_to_the((-self.scale) as u64);
                 SubAssign::sub_assign(&mut self.int_val, rhs);
@@ -1704,7 +1718,9 @@ impl ToPrimitive for BigDecimal {
     }
 
     fn to_f64(&self) -> Option<f64> {
-        self.int_val.to_f64().map(|x| x * 10f64.powi(-self.scale as i32))
+        self.int_val
+            .to_f64()
+            .map(|x| x * 10f64.powi(-self.scale as i32))
     }
 }
 
@@ -1773,7 +1789,11 @@ impl TryFrom<f32> for BigDecimal {
 
     #[inline]
     fn try_from(n: f32) -> Result<Self, Self::Error> {
-        BigDecimal::from_str(&format!("{:.PRECISION$e}", n, PRECISION = ::std::f32::DIGITS as usize))
+        BigDecimal::from_str(&format!(
+            "{:.PRECISION$e}",
+            n,
+            PRECISION = ::std::f32::DIGITS as usize
+        ))
     }
 }
 
@@ -1782,7 +1802,11 @@ impl TryFrom<f64> for BigDecimal {
 
     #[inline]
     fn try_from(n: f64) -> Result<Self, Self::Error> {
-        BigDecimal::from_str(&format!("{:.PRECISION$e}", n, PRECISION = ::std::f64::DIGITS as usize))
+        BigDecimal::from_str(&format!(
+            "{:.PRECISION$e}",
+            n,
+            PRECISION = ::std::f64::DIGITS as usize
+        ))
     }
 }
 
@@ -1818,12 +1842,12 @@ impl ToBigInt for BigDecimal {
 #[cfg(feature = "serde")]
 mod bigdecimal_serde {
     use super::BigDecimal;
+    #[allow(unused_imports)]
+    use num_traits::FromPrimitive;
     use serde::{de, ser};
     use std::convert::TryFrom;
     use std::fmt;
     use std::str::FromStr;
-    #[allow(unused_imports)]
-    use num_traits::FromPrimitive;
 
     impl ser::Serialize for BigDecimal {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -1955,7 +1979,8 @@ mod bigdecimal_serde {
         let vals = vec![0, 1, 81516161, -370, -8, -99999999999];
         for n in vals {
             let expected = BigDecimal::from_i64(n).unwrap();
-            let value: BigDecimal = serde_json::from_str(&serde_json::to_string(&n).unwrap()).unwrap();
+            let value: BigDecimal =
+                serde_json::from_str(&serde_json::to_string(&n).unwrap()).unwrap();
             assert_eq!(expected, value);
         }
     }
@@ -1978,7 +2003,8 @@ mod bigdecimal_serde {
         ];
         for n in vals {
             let expected = BigDecimal::from_f64(n).unwrap();
-            let value: BigDecimal = serde_json::from_str(&serde_json::to_string(&n).unwrap()).unwrap();
+            let value: BigDecimal =
+                serde_json::from_str(&serde_json::to_string(&n).unwrap()).unwrap();
             assert_eq!(expected, value);
         }
     }

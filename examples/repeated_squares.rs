@@ -1,8 +1,8 @@
 extern crate bigdecimal;
 
 use bigdecimal::BigDecimal;
-use std::time::Instant;
 use std::str::FromStr;
+use std::time::Instant;
 
 fn main() {
     //   let mut x = BigDecimal::from(1.1);
