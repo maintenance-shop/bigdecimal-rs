@@ -906,8 +906,8 @@ impl<'a, 'b> Add<&'b BigDecimal> for &'a BigDecimal {
 
         match self.scale.cmp(&rhs.scale) {
             Ordering::Less => lhs.with_scale(rhs.scale) + rhs,
-            Ordering::Equal => rhs.with_scale(lhs.scale) + lhs,
-            Ordering::Greater => BigDecimal::new(lhs.int_val.clone() + &rhs.int_val, lhs.scale),
+            Ordering::Equal => BigDecimal::new(lhs.int_val.clone() + &rhs.int_val, lhs.scale),
+            Ordering::Greater => rhs.with_scale(lhs.scale) + lhs,
         }
     }
 }
@@ -2214,7 +2214,7 @@ mod bigdecimal_tests {
             ("184467440737e3380", "0", "184467440737e3380"),
         ];
 
-        for &(x, y, z) in vals.iter() {
+        for (x, y, z) in vals {
 
             let mut a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
