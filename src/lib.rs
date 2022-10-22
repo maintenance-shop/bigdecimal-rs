@@ -198,7 +198,6 @@ impl BigDecimal {
 
     #[inline(always)]
     fn take_and_scale(mut self, new_scale: i64) -> BigDecimal {
-        // let foo = bar.moved_and_scaled_to()
         if self.int_val.is_zero() {
             return BigDecimal::new(BigInt::zero(), new_scale);
         }
@@ -255,8 +254,6 @@ impl BigDecimal {
     /// # Examples
     ///
     /// ```
-    /// extern crate num_bigint;
-    /// extern crate bigdecimal;
     /// use std::str::FromStr;
     ///
     /// assert_eq!(bigdecimal::BigDecimal::from_str("-1").unwrap().sign(), num_bigint::Sign::Minus);
@@ -274,8 +271,6 @@ impl BigDecimal {
     /// # Examples
     ///
     /// ```
-    /// extern crate num_bigint;
-    /// extern crate bigdecimal;
     /// use std::str::FromStr;
     ///
     /// assert_eq!(bigdecimal::BigDecimal::from_str("1.1").unwrap().as_bigint_and_exponent(),
@@ -291,8 +286,6 @@ impl BigDecimal {
     /// # Examples
     ///
     /// ```
-    /// extern crate num_bigint;
-    /// extern crate bigdecimal;
     /// use std::str::FromStr;
     ///
     /// assert_eq!(bigdecimal::BigDecimal::from_str("1.1").unwrap().into_bigint_and_exponent(),
