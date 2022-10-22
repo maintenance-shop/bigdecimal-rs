@@ -12,11 +12,11 @@
 
 //! A Big Decimal
 //!
-//! `BigDecimal` allows storing any real number to arbitrary precision; which
+//! [`BigDecimal`] allows storing any real number to arbitrary precision; which
 //! avoids common floating point errors (such as 0.1 + 0.2 ≠ 0.3) at the
 //! cost of complexity.
 //!
-//! Internally, `BigDecimal` uses a `BigInt` object, paired with a 64-bit
+//! Internally, [`BigDecimal`] uses a [`BigInt`] object, paired with a 64-bit
 //! integer which determines the position of the decimal point. Therefore,
 //! the precision *is not* actually arbitrary, but limited to 2<sup>63</sup>
 //! decimal places.
@@ -62,7 +62,7 @@ const LOG2_10: f64 = std::f64::consts::LOG2_10;
 mod macros;
 
 #[cfg(feature = "serde")]
-/// Tools to help serializing/deserializing `BigDecimal`s
+/// Tools to help serializing/deserializing [`BigDecimal`]s
 mod serde_impl;
 
 #[inline(always)]
@@ -140,7 +140,7 @@ pub struct BigDecimal {
 }
 
 impl BigDecimal {
-    /// Creates and initializes a `BigDecimal`.
+    /// Creates and initializes a [`BigDecimal`].
     ///
     #[inline]
     pub fn new(digits: BigInt, scale: i64) -> BigDecimal {
@@ -150,9 +150,9 @@ impl BigDecimal {
         }
     }
 
-    /// Creates and initializes a `BigDecimal`.
+    /// Creates and initializes a [`BigDecimal`].
     ///
-    /// Decodes using `str::from_utf8` and forwards to `BigDecimal::from_str_radix`.
+    /// Decodes using `str::from_utf8` and forwards to [`BigDecimal::from_str_radix`].
     /// Only base-10 is supported.
     ///
     /// # Examples
@@ -249,7 +249,7 @@ impl BigDecimal {
         }
     }
 
-    /// Return the sign of the `BigDecimal` as `num::bigint::Sign`.
+    /// Return the sign of the [`BigDecimal`] as [`num_bigint::Sign`].
     ///
     /// # Examples
     ///
