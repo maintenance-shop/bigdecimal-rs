@@ -1,7 +1,8 @@
 [package]
 name = "bigdecimal"
 version = "0.4.2"
-authors = ["Andrew Kubera"]
+edition = "2021"
+authors = ["Andrew Kubera", "Jiseok CHOI <jiseok.dev@gmail.com>"]
 description = "Arbitrary precision decimal numbers"
 homepage = "https://github.com/maintenance-group/bigdecimal-rs"
 repository = "https://github.com/maintenance-group/bigdecimal-rs"

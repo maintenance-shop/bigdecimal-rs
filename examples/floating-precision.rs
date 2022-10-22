@@ -1,5 +1,3 @@
-extern crate bigdecimal;
-
 use bigdecimal::BigDecimal;
 use std::str::FromStr;
 

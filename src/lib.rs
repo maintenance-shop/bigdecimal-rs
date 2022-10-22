@@ -42,15 +42,6 @@
 #![allow(clippy::suspicious_arithmetic_impl, clippy::suspicious_op_assign_impl)]
 #![deny(clippy::string_to_string, clippy::str_to_string)]
 
-pub extern crate num_bigint;
-pub extern crate num_traits;
-
-extern crate num_integer;
-extern crate thiserror;
-
-#[cfg(feature = "serde")]
-extern crate serde;
-
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::default::Default;
@@ -64,8 +55,6 @@ use std::str::{self, FromStr};
 use num_bigint::{BigInt, ParseBigIntError, Sign, ToBigInt};
 use num_integer::Integer;
 pub use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
-
-use thiserror::Error as ThisError;
 
 const LOG2_10: f64 = std::f64::consts::LOG2_10;
 
@@ -689,7 +678,7 @@ impl BigDecimal {
     }
 }
 
-#[derive(ThisError, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ParseBigDecimalError {
     #[error(transparent)]
     ParseDecimal(#[from] ParseFloatError),
@@ -1587,17 +1576,18 @@ impl fmt::Display for BigDecimal {
         };
 
         // Alter precision after the decimal point
-        let after = if let Some(precision) = f.precision() {
-            let len = after.len();
-            if len < precision {
-                after + "0".repeat(precision - len).as_str()
-            } else {
-                // TODO: Should we round?
-                after[0..precision].to_string()
-            }
-        } else {
-            after
-        };
+        let after = f
+            .precision()
+            .map(|precision| {
+                let len = after.len();
+                if len < precision {
+                    format!("{after}{}", "0".repeat(precision - len))
+                } else {
+                    // TODO: Should we round?
+                    after[0..precision].to_string()
+                }
+            })
+            .unwrap_or(after);
 
         // Concatenate everything
         let complete_without_sign = if !after.is_empty() {
@@ -2002,14 +1992,13 @@ mod bigdecimal_serde {
     }
 }
 
-#[rustfmt::skip]
 #[cfg(test)]
 mod bigdecimal_tests {
-    use BigDecimal;
-    use num_traits::{ToPrimitive, FromPrimitive, Signed, Zero, One};
+    use crate::BigDecimal;
+
+    use num_traits::{FromPrimitive, One, Signed, ToPrimitive, Zero};
     use std::convert::TryFrom;
     use std::str::FromStr;
-    use num_bigint;
 
     #[test]
     fn test_sum() {
@@ -2060,11 +2049,17 @@ mod bigdecimal_tests {
     #[test]
     fn test_to_i128() {
         let vals = vec![
-            ("170141183460469231731687303715884105727", 170141183460469231731687303715884105727),
-            ("-170141183460469231731687303715884105728", -170141183460469231731687303715884105728),
+            (
+                "170141183460469231731687303715884105727",
+                170141183460469231731687303715884105727,
+            ),
+            (
+                "-170141183460469231731687303715884105728",
+                -170141183460469231731687303715884105728,
+            ),
             ("12.34", 12),
             ("3.14", 3),
-            ("50", 50),            
+            ("50", 50),
             ("0.001", 0),
         ];
         for (s, ans) in vals {
@@ -2077,10 +2072,13 @@ mod bigdecimal_tests {
     #[test]
     fn test_to_u128() {
         let vals = vec![
-            ("340282366920938463463374607431768211455", 340282366920938463463374607431768211455),
+            (
+                "340282366920938463463374607431768211455",
+                340282366920938463463374607431768211455,
+            ),
             ("12.34", 12),
             ("3.14", 3),
-            ("50", 50),            
+            ("50", 50),
             ("0.001", 0),
         ];
         for (s, ans) in vals {
@@ -2141,7 +2139,6 @@ mod bigdecimal_tests {
             ("31415.93", ::std::f32::consts::PI * 10000.0),
             ("94247.78", ::std::f32::consts::PI * 30000.0),
             // ("3.14159265358979323846264338327950288f32", ::std::f32::consts::PI),
-
         ];
         for (s, n) in vals {
             let expected = BigDecimal::from_str(s).unwrap();
@@ -2149,7 +2146,6 @@ mod bigdecimal_tests {
             assert_eq!(expected, value);
             // assert_eq!(expected, n);
         }
-
     }
     #[test]
     fn test_from_f64() {
@@ -2194,7 +2190,6 @@ mod bigdecimal_tests {
         ];
 
         for (x, y, z) in vals {
-
             let mut a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             let c = BigDecimal::from_str(z).unwrap();
@@ -2219,7 +2214,6 @@ mod bigdecimal_tests {
         ];
 
         for &(x, y, z) in vals.iter() {
-
             let mut a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             let c = BigDecimal::from_str(z).unwrap();
@@ -2237,7 +2231,6 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_mul() {
-
         let vals = vec![
             ("2", "1", "2"),
             ("12.34", "1.234", "15.22756"),
@@ -2248,7 +2241,6 @@ mod bigdecimal_tests {
         ];
 
         for &(x, y, z) in vals.iter() {
-
             let mut a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             let c = BigDecimal::from_str(z).unwrap();
@@ -2294,7 +2286,6 @@ mod bigdecimal_tests {
         ];
 
         for &(x, y, z) in vals.iter() {
-
             let a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             let c = BigDecimal::from_str(z).unwrap();
@@ -2395,11 +2386,7 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_not_equal() {
-        let vals = vec![
-            ("2", ".2e2"),
-            ("1e45", "1e-900"),
-            ("1e+900", "1e-900"),
-        ];
+        let vals = vec![("2", ".2e2"), ("1e45", "1e-900"), ("1e+900", "1e-900")];
         for &(x, y) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
@@ -2409,11 +2396,12 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_hash_equal() {
-        use std::hash::{Hash, Hasher};
         use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
 
         fn hash<T>(obj: &T) -> u64
-            where T: Hash
+        where
+            T: Hash,
         {
             let mut hasher = DefaultHasher::new();
             obj.hash(&mut hasher);
@@ -2436,7 +2424,7 @@ mod bigdecimal_tests {
             ("-0.00", "0.000"),
             ("0.00", "-0.000"),
         ];
-        for &(x,y) in vals.iter() {
+        for &(x, y) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             assert_eq!(a, b);
@@ -2446,11 +2434,12 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_hash_not_equal() {
-        use std::hash::{Hash, Hasher};
         use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
 
         fn hash<T>(obj: &T) -> u64
-            where T: Hash
+        where
+            T: Hash,
         {
             let mut hasher = DefaultHasher::new();
             obj.hash(&mut hasher);
@@ -2463,7 +2452,7 @@ mod bigdecimal_tests {
             ("10", "10000"),
             ("10.0", "100"),
         ];
-        for &(x,y) in vals.iter() {
+        for &(x, y) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap();
             let b = BigDecimal::from_str(y).unwrap();
             assert!(a != b, "{} == {}", a, b);
@@ -2473,11 +2462,12 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_hash_equal_scale() {
-        use std::hash::{Hash, Hasher};
         use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
 
         fn hash<T>(obj: &T) -> u64
-            where T: Hash
+        where
+            T: Hash,
         {
             let mut hasher = DefaultHasher::new();
             obj.hash(&mut hasher);
@@ -2491,7 +2481,7 @@ mod bigdecimal_tests {
             ("1234.5678", -3, "1200", -3),
             ("-1234", -2, "-1200", 0),
         ];
-        for &(x,xs,y,ys) in vals.iter() {
+        for &(x, xs, y, ys) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap().with_scale(xs);
             let b = BigDecimal::from_str(y).unwrap().with_scale(ys);
             assert_eq!(a, b);
@@ -2519,15 +2509,9 @@ mod bigdecimal_tests {
         }
     }
 
-
     #[test]
     fn test_digits() {
-        let vals = vec![
-            ("0", 1),
-            ("7", 1),
-            ("10", 2),
-            ("8934", 4),
-        ];
+        let vals = vec![("0", 1), ("7", 1), ("10", 2), ("8934", 4)];
         for &(x, y) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap();
             assert_eq!(a.digits(), y);
@@ -2536,8 +2520,8 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_get_rounding_term() {
-        use num_bigint::BigInt;
         use super::get_rounding_term;
+        use num_bigint::BigInt;
         let vals = vec![
             ("0", 0),
             ("4", 0),
@@ -2566,10 +2550,7 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_abs() {
-        let vals = vec![
-            ("10", "10"),
-            ("-10", "10"),
-        ];
+        let vals = vec![("10", "10"), ("-10", "10")];
         for &(x, y) in vals.iter() {
             let a = BigDecimal::from_str(x).unwrap().abs();
             let b = BigDecimal::from_str(y).unwrap();
@@ -2579,8 +2560,8 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_count_decimal_digits() {
-        use num_bigint::BigInt;
         use super::count_decimal_digits;
+        use num_bigint::BigInt;
         let vals = vec![
             ("10", 2),
             ("1", 1),
@@ -2661,23 +2642,9 @@ mod bigdecimal_tests {
 
     #[test]
     fn test_is_integer() {
-        let true_vals = vec![
-            "100",
-            "100.00",
-            "1724e4",
-            "31.47e8",
-            "-31.47e8",
-            "-0.0",
-        ];
+        let true_vals = vec!["100", "100.00", "1724e4", "31.47e8", "-31.47e8", "-0.0"];
 
-        let false_vals = vec![
-            "100.1",
-            "0.001",
-            "3147e-3",
-            "3147e-8",
-            "-0.01",
-            "-1e-3",
-        ];
+        let false_vals = vec!["100.1", "0.001", "3147e-3", "3147e-8", "-0.01", "-1e-3"];
 
         for s in true_vals {
             let d = BigDecimal::from_str(s).unwrap();
@@ -2703,7 +2670,7 @@ mod bigdecimal_tests {
             let i = a.inverse();
             let b = BigDecimal::from_str(y).unwrap();
             assert_eq!(i, b);
-            assert_eq!(BigDecimal::from(1)/&a, b);
+            assert_eq!(BigDecimal::from(1) / &a, b);
             assert_eq!(i.inverse(), a);
             // assert_eq!(a.scale, b.scale, "scale mismatch ({} != {}", a, b);
         }
@@ -2757,7 +2724,9 @@ mod bigdecimal_tests {
         for &((s, scale), e) in vals.iter() {
             let expected = BigDecimal::from_str(e).unwrap();
 
-            let sqrt = BigDecimal::new(BigInt::from_str(s).unwrap(), scale).sqrt().unwrap();
+            let sqrt = BigDecimal::new(BigInt::from_str(s).unwrap(), scale)
+                .sqrt()
+                .unwrap();
             assert_eq!(sqrt, expected);
         }
     }
@@ -2894,13 +2863,17 @@ mod bigdecimal_tests {
     fn test_fmt() {
         let vals = vec![
             // b  s   ( {}        {:.1}     {:.4}      {:4.1}  {:+05.1}  {:<4.1}
-            (1, 0,  (  "1",     "1.0",    "1.0000",  " 1.0",  "+01.0",   "1.0 " )),
-            (1, 1,  (  "0.1",   "0.1",    "0.1000",  " 0.1",  "+00.1",   "0.1 " )),
-            (1, 2,  (  "0.01",  "0.0",    "0.0100",  " 0.0",  "+00.0",   "0.0 " )),
-            (1, -2, ("100",   "100.0",  "100.0000", "100.0", "+100.0", "100.0" )),
-            (-1, 0, ( "-1",    "-1.0",   "-1.0000",  "-1.0",  "-01.0",  "-1.0" )),
-            (-1, 1, ( "-0.1",  "-0.1",   "-0.1000",  "-0.1",  "-00.1",  "-0.1" )),
-            (-1, 2, ( "-0.01", "-0.0",   "-0.0100",  "-0.0",  "-00.0",  "-0.0" )),
+            (1, 0, ("1", "1.0", "1.0000", " 1.0", "+01.0", "1.0 ")),
+            (1, 1, ("0.1", "0.1", "0.1000", " 0.1", "+00.1", "0.1 ")),
+            (1, 2, ("0.01", "0.0", "0.0100", " 0.0", "+00.0", "0.0 ")),
+            (
+                1,
+                -2,
+                ("100", "100.0", "100.0000", "100.0", "+100.0", "100.0"),
+            ),
+            (-1, 0, ("-1", "-1.0", "-1.0000", "-1.0", "-01.0", "-1.0")),
+            (-1, 1, ("-0.1", "-0.1", "-0.1000", "-0.1", "-00.1", "-0.1")),
+            (-1, 2, ("-0.01", "-0.0", "-0.0100", "-0.0", "-00.0", "-0.0")),
         ];
         for (i, scale, results) in vals {
             let x = BigDecimal::new(num_bigint::BigInt::from(i), scale);
@@ -2944,21 +2917,27 @@ mod bigdecimal_tests {
         use num_bigint::BigInt;
 
         let vals = vec![
-            (BigDecimal::new(BigInt::from(10), 2),
-            BigDecimal::new(BigInt::from(1), 1),
-            "0.1"),
-            (BigDecimal::new(BigInt::from(132400), -4),
-            BigDecimal::new(BigInt::from(1324), -6),
-            "1324000000"),
-            (BigDecimal::new(BigInt::from(1_900_000), 3),
-            BigDecimal::new(BigInt::from(19), -2),
-            "1900"),
-            (BigDecimal::new(BigInt::from(0), -3),
-            BigDecimal::zero(),
-            "0"),
-            (BigDecimal::new(BigInt::from(0), 5),
-            BigDecimal::zero(),
-            "0"),
+            (
+                BigDecimal::new(BigInt::from(10), 2),
+                BigDecimal::new(BigInt::from(1), 1),
+                "0.1",
+            ),
+            (
+                BigDecimal::new(BigInt::from(132400), -4),
+                BigDecimal::new(BigInt::from(1324), -6),
+                "1324000000",
+            ),
+            (
+                BigDecimal::new(BigInt::from(1_900_000), 3),
+                BigDecimal::new(BigInt::from(19), -2),
+                "1900",
+            ),
+            (
+                BigDecimal::new(BigInt::from(0), -3),
+                BigDecimal::zero(),
+                "0",
+            ),
+            (BigDecimal::new(BigInt::from(0), 5), BigDecimal::zero(), "0"),
         ];
 
         for (not_normalized, normalized, string) in vals {
