@@ -39,13 +39,8 @@
 //!
 //! println!("Input ({}) with 10 decimals: {} vs {})", input, dec, float);
 //! ```
-#![allow(
-    clippy::unreadable_literal,
-    clippy::needless_return,
-    clippy::suspicious_arithmetic_impl,
-    clippy::suspicious_op_assign_impl,
-    clippy::redundant_field_names
-)]
+#![allow(clippy::suspicious_arithmetic_impl, clippy::suspicious_op_assign_impl)]
+#![deny(clippy::string_to_string, clippy::str_to_string)]
 
 pub extern crate num_bigint;
 extern crate num_integer;
@@ -77,7 +72,7 @@ mod macros;
 #[inline(always)]
 fn ten_to_the(pow: u64) -> BigInt {
     if pow < 20 {
-        BigInt::from(10u64.pow(pow as u32))
+        BigInt::from(10_u64.pow(pow as u32))
     } else {
         let (half, rem) = pow.div_rem(&16);
 
@@ -104,7 +99,7 @@ fn count_decimal_digits(int: &BigInt) -> u64 {
     let mut digits = (int.bits() as f64 / LOG2_10) as u64;
     let mut num = ten_to_the(digits);
     while *int >= num {
-        num *= 10u8;
+        num *= 10_u8;
         digits += 1;
     }
     digits
@@ -155,7 +150,7 @@ impl BigDecimal {
     pub fn new(digits: BigInt, scale: i64) -> BigDecimal {
         BigDecimal {
             int_val: digits,
-            scale: scale,
+            scale,
         }
     }
 
@@ -330,12 +325,12 @@ impl BigDecimal {
     #[inline]
     pub fn double(&self) -> BigDecimal {
         if self.is_zero() {
-            self.clone()
-        } else {
-            BigDecimal {
-                int_val: self.int_val.clone() * 2,
-                scale: self.scale,
-            }
+            return self.clone();
+        }
+
+        BigDecimal {
+            int_val: self.int_val.clone() * 2,
+            scale: self.scale,
         }
     }
 
@@ -347,8 +342,10 @@ impl BigDecimal {
     #[inline]
     pub fn half(&self) -> BigDecimal {
         if self.is_zero() {
-            self.clone()
-        } else if self.int_val.is_even() {
+            return self.clone();
+        }
+
+        if self.int_val.is_even() {
             BigDecimal {
                 int_val: self.int_val.clone().div(2u8),
                 scale: self.scale,
@@ -361,28 +358,27 @@ impl BigDecimal {
         }
     }
 
-    ///
     #[inline]
     pub fn square(&self) -> BigDecimal {
         if self.is_zero() || self.is_one() {
-            self.clone()
-        } else {
-            BigDecimal {
-                int_val: self.int_val.clone() * &self.int_val,
-                scale: self.scale * 2,
-            }
+            return self.clone();
+        }
+
+        BigDecimal {
+            int_val: self.int_val.clone() * &self.int_val,
+            scale: self.scale * 2,
         }
     }
 
     #[inline]
     pub fn cube(&self) -> BigDecimal {
         if self.is_zero() || self.is_one() {
-            self.clone()
-        } else {
-            BigDecimal {
-                int_val: self.int_val.clone() * &self.int_val * &self.int_val,
-                scale: self.scale * 3,
-            }
+            return self.clone();
+        }
+
+        BigDecimal {
+            int_val: self.int_val.clone() * &self.int_val * &self.int_val,
+            scale: self.scale * 3,
         }
     }
 
@@ -395,6 +391,7 @@ impl BigDecimal {
         if self.is_zero() || self.is_one() {
             return Some(self.clone());
         }
+
         if self.is_negative() {
             return None;
         }
@@ -405,7 +402,10 @@ impl BigDecimal {
             let initial_guess = (self.int_val.bits() as f64 - self.scale as f64 * LOG2_10) / 2.0;
             let res = magic_guess_scale * initial_guess.exp2();
             if res.is_normal() {
-                BigDecimal::try_from(res).unwrap()
+                match BigDecimal::try_from(res) {
+                    Ok(num) => num,
+                    Err(_) => return None,
+                }
             } else {
                 // can't guess with float - just guess magnitude
                 let scale =
@@ -422,7 +422,7 @@ impl BigDecimal {
         // TODO: Use context variable to set precision
         let max_precision = 100;
 
-        let next_iteration = move |r: BigDecimal| {
+        let next_iteration = |r: BigDecimal| {
             // division needs to be precise to (at least) one extra digit
             let tmp = impl_division(
                 self.int_val.clone(),
@@ -458,7 +458,7 @@ impl BigDecimal {
             };
         }
 
-        return Some(result);
+        Some(result)
     }
 
     /// Take the cube root of the number
@@ -488,7 +488,7 @@ impl BigDecimal {
         };
 
         // TODO: Use context variable to set precision
-        let max_precision = 100;
+        const MAX_PRECISION: u64 = 100;
 
         let three = BigDecimal::from(3);
 
@@ -498,14 +498,15 @@ impl BigDecimal {
                 self.int_val.clone(),
                 &sqrd.int_val,
                 self.scale - sqrd.scale,
-                max_precision + 1,
+                MAX_PRECISION + 1,
             );
             let tmp = tmp + r.double();
+
             impl_division(
                 tmp.int_val,
                 &three.int_val,
                 tmp.scale - three.scale,
-                max_precision + 1,
+                MAX_PRECISION + 1,
             )
         };
 
@@ -524,14 +525,14 @@ impl BigDecimal {
             running_result = next_iteration(running_result);
 
             // result has clipped precision, running_result has full precision
-            result = if running_result.digits() > max_precision {
-                running_result.with_prec(max_precision)
+            result = if running_result.digits() > MAX_PRECISION {
+                running_result.with_prec(MAX_PRECISION)
             } else {
                 running_result.clone()
             };
         }
 
-        return result;
+        result
     }
 
     /// Compute the reciprical of the number: x<sup>-1</sup>
@@ -560,7 +561,7 @@ impl BigDecimal {
             }
         };
 
-        let max_precision = 100;
+        const MAX_PRECISION: u64 = 100;
         let next_iteration = move |r: BigDecimal| {
             let two = BigDecimal::from(2);
             let tmp = two - self * &r;
@@ -581,17 +582,17 @@ impl BigDecimal {
             prev_result = result;
 
             // calculate next iteration
-            running_result = next_iteration(running_result).with_prec(max_precision);
+            running_result = next_iteration(running_result).with_prec(MAX_PRECISION);
 
             // 'result' has clipped precision, 'running_result' has full precision
-            result = if running_result.digits() > max_precision {
-                running_result.with_prec(max_precision)
+            result = if running_result.digits() > MAX_PRECISION {
+                running_result.with_prec(MAX_PRECISION)
             } else {
                 running_result.clone()
             };
         }
 
-        return result;
+        result
     }
 
     /// Return number rounded to round_digits precision after the decimal point
@@ -664,7 +665,8 @@ impl BigDecimal {
             }
             prev_result = trimmed_result;
         }
-        return result.with_prec(100);
+
+        result.with_prec(100)
     }
 
     #[must_use]
@@ -672,12 +674,14 @@ impl BigDecimal {
         if self == &BigDecimal::zero() {
             return BigDecimal::zero();
         }
+
         let (sign, mut digits) = self.int_val.to_radix_be(10);
         let trailing_count = digits.iter().rev().take_while(|i| **i == 0).count();
         let trunc_to = digits.len() - trailing_count as usize;
         digits.truncate(trunc_to);
         let int_val = BigInt::from_radix_be(sign, &digits, 10).unwrap();
         let scale = self.scale - trailing_count as i64;
+
         BigDecimal::new(int_val, scale)
     }
 }
@@ -738,12 +742,14 @@ impl FromStr for BigDecimal {
     }
 }
 
-#[allow(deprecated)] // trim_right_match -> trim_end_match
+#[allow(deprecated)]
+// trim_right_match -> trim_end_match
 impl Hash for BigDecimal {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let mut dec_str = self.int_val.to_str_radix(10);
         let scale = self.scale;
         let zero = self.int_val.is_zero();
+
         if scale > 0 && !zero {
             let mut cnt = 0;
             dec_str = dec_str
@@ -751,10 +757,11 @@ impl Hash for BigDecimal {
                     cnt += 1;
                     x == '0' && cnt <= scale
                 })
-                .to_string();
+                .to_owned();
         } else if scale < 0 && !zero {
             dec_str.push_str(&"0".repeat(self.scale.unsigned_abs() as usize));
         }
+
         dec_str.hash(state);
     }
 }
@@ -1313,7 +1320,7 @@ fn impl_division(mut num: BigInt, den: &BigInt, mut scale: i64, max_precision: u
     if remainder.is_zero() {
         return BigDecimal {
             int_val: quotient,
-            scale: scale,
+            scale,
         };
     }
 
@@ -1337,9 +1344,8 @@ fn impl_division(mut num: BigInt, den: &BigInt, mut scale: i64, max_precision: u
         quotient += get_rounding_term(&remainder.div(den));
     }
 
-    let result = BigDecimal::new(quotient, scale);
     // println!(" {} / {}\n = {}\n", self, other, result);
-    return result;
+    BigDecimal::new(quotient, scale)
 }
 
 impl Div<BigDecimal> for BigDecimal {
@@ -1358,13 +1364,13 @@ impl Div<BigDecimal> for BigDecimal {
         if self.int_val == other.int_val {
             return BigDecimal {
                 int_val: 1.into(),
-                scale: scale,
+                scale,
             };
         }
 
-        let max_precision = 100;
+        const MAX_PRECISION: u64 = 100;
 
-        return impl_division(self.int_val, &other.int_val, scale, max_precision);
+        impl_division(self.int_val, &other.int_val, scale, MAX_PRECISION)
     }
 }
 
@@ -1384,13 +1390,13 @@ impl<'a> Div<&'a BigDecimal> for BigDecimal {
         if self.int_val == other.int_val {
             return BigDecimal {
                 int_val: 1.into(),
-                scale: scale,
+                scale,
             };
         }
 
-        let max_precision = 100;
+        const MAX_PRECISION: u64 = 100;
 
-        return impl_division(self.int_val, &other.int_val, scale, max_precision);
+        impl_division(self.int_val, &other.int_val, scale, MAX_PRECISION)
     }
 }
 
@@ -1417,13 +1423,13 @@ impl<'a, 'b> Div<&'b BigDecimal> for &'a BigDecimal {
         if num_int == den_int {
             return BigDecimal {
                 int_val: 1.into(),
-                scale: scale,
+                scale,
             };
         }
 
-        let max_precision = 100;
+        const MAX_PRECISION: u64 = 100;
 
-        return impl_division(num_int.clone(), den_int, scale, max_precision);
+        impl_division(num_int.clone(), den_int, scale, MAX_PRECISION)
     }
 }
 
@@ -1584,7 +1590,7 @@ impl fmt::Display for BigDecimal {
             // completely behind the decimal point
             let scale = self.scale as usize;
             let after = "0".repeat(scale - abs_int.len()) + abs_int.as_str();
-            ("0".to_string(), after)
+            ("0".to_owned(), after)
         } else {
             // Second case: the integer representation falls
             // around, or before the decimal point
@@ -1593,8 +1599,8 @@ impl fmt::Display for BigDecimal {
                 // Case 2.1, entirely before the decimal point
                 // We should prepend zeros
                 let zeros = location as usize - abs_int.len();
-                let abs_int = abs_int + "0".repeat(zeros as usize).as_str();
-                (abs_int, "".to_string())
+                let abs_int = abs_int + "0".repeat(zeros).as_str();
+                (abs_int, "".to_owned())
             } else {
                 // Case 2.2, somewhere around the decimal point
                 // Just split it in two
@@ -1647,13 +1653,12 @@ impl Num for BigDecimal {
             )));
         }
 
-        let exp_separator: &[_] = &['e', 'E'];
+        const EXP_SEPARATOR: &[char] = &['e', 'E'];
 
         // split slice into base and exponent parts
-        let (base_part, exponent_value) = match s.find(exp_separator) {
+        let (base_part, exponent_value) = match s.find(EXP_SEPARATOR) {
             // exponent defaults to 0 if (e|E) not found
             None => (s, 0),
-
             // split and parse exponent field
             Some(loc) => {
                 // slice up to `loc` and 1 after to skip the 'e' char
@@ -1676,9 +1681,9 @@ impl Num for BigDecimal {
         }
 
         // split decimal into a digit string and decimal-point offset
-        let (digits, decimal_offset): (String, _) = match base_part.find('.') {
+        let (digits, decimal_offset) = match base_part.find('.') {
             // No dot! pass directly to BigInt
-            None => (base_part.to_string(), 0),
+            None => (base_part.to_owned(), 0),
 
             // decimal point found - necessary copy into new string buffer
             Some(loc) => {
@@ -1733,7 +1738,7 @@ impl ToPrimitive for BigDecimal {
     fn to_f64(&self) -> Option<f64> {
         self.int_val
             .to_f64()
-            .map(|x| x * 10f64.powi(-self.scale as i32))
+            .map(|x| x * 10.0_f64.powi(-self.scale as i32))
     }
 }
 
@@ -1760,42 +1765,36 @@ impl From<u64> for BigDecimal {
 impl From<(BigInt, i64)> for BigDecimal {
     #[inline]
     fn from((int_val, scale): (BigInt, i64)) -> Self {
-        BigDecimal {
-            int_val: int_val,
-            scale: scale,
-        }
+        BigDecimal { int_val, scale }
     }
 }
 
 impl From<BigInt> for BigDecimal {
     #[inline]
     fn from(int_val: BigInt) -> Self {
-        BigDecimal {
-            int_val: int_val,
-            scale: 0,
-        }
+        BigDecimal { int_val, scale: 0 }
     }
 }
 
 macro_rules! impl_from_type {
-    ($FromType:ty, $AsType:ty) => {
-        impl From<$FromType> for BigDecimal {
+    ($from_type: ty as $as_type: ty) => {
+        impl From<$from_type> for BigDecimal {
             #[inline]
             #[allow(clippy::cast_lossless)]
-            fn from(n: $FromType) -> Self {
-                BigDecimal::from(n as $AsType)
+            fn from(n: $from_type) -> Self {
+                BigDecimal::from(n as $as_type)
             }
         }
     };
 }
 
-impl_from_type!(u8, u64);
-impl_from_type!(u16, u64);
-impl_from_type!(u32, u64);
+impl_from_type!(u8 as u64);
+impl_from_type!(u16 as u64);
+impl_from_type!(u32 as u64);
 
-impl_from_type!(i8, i64);
-impl_from_type!(i16, i64);
-impl_from_type!(i32, i64);
+impl_from_type!(i8 as i64);
+impl_from_type!(i16 as i64);
+impl_from_type!(i32 as i64);
 
 impl TryFrom<f32> for BigDecimal {
     type Error = ParseBigDecimalError;
