@@ -61,7 +61,7 @@ use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
 use std::str::{self, FromStr};
 
 use num_bigint::{BigInt, ParseBigIntError, Sign, ToBigInt};
-use num_integer::Integer as IntegerTrait;
+use num_integer::Integer;
 pub use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
 
 const LOG2_10: f64 = std::f64::consts::LOG2_10;
