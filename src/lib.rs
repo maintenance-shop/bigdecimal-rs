@@ -1304,7 +1304,7 @@ fn impl_division(mut num: BigInt, den: &BigInt, mut scale: i64, max_precision: u
         (true, true) => return impl_division(num.neg(), &den.neg(), scale, max_precision),
         (true, false) => return -impl_division(num.neg(), den, scale, max_precision),
         (false, true) => return -impl_division(num, &den.neg(), scale, max_precision),
-        (false, false) => (),
+        (false, false) => {}
     }
 
     // shift digits until numerator is larger than denominator (set scale appropriately)
@@ -1344,7 +1344,6 @@ fn impl_division(mut num: BigInt, den: &BigInt, mut scale: i64, max_precision: u
         quotient += get_rounding_term(&remainder.div(den));
     }
 
-    // println!(" {} / {}\n = {}\n", self, other, result);
     BigDecimal::new(quotient, scale)
 }
 
@@ -1353,7 +1352,7 @@ impl Div<BigDecimal> for BigDecimal {
     #[inline]
     fn div(self, other: BigDecimal) -> BigDecimal {
         if other.is_zero() {
-            panic!("Division by zero");
+            panic!("attempt to divide by zero");
         }
         if self.is_zero() || other.is_one() {
             return self;
@@ -1379,7 +1378,7 @@ impl<'a> Div<&'a BigDecimal> for BigDecimal {
     #[inline]
     fn div(self, other: &'a BigDecimal) -> BigDecimal {
         if other.is_zero() {
-            panic!("Division by zero");
+            panic!("attempt to divide by zero");
         }
         if self.is_zero() || other.is_one() {
             return self;
@@ -1408,7 +1407,7 @@ impl<'a, 'b> Div<&'b BigDecimal> for &'a BigDecimal {
     #[inline]
     fn div(self, other: &BigDecimal) -> BigDecimal {
         if other.is_zero() {
-            panic!("Division by zero");
+            panic!("attempt to divide by zero");
         }
         // TODO: Fix setting scale
         if self.is_zero() || other.is_one() {
@@ -1714,12 +1713,14 @@ impl ToPrimitive for BigDecimal {
             Sign::NoSign => Some(0),
         }
     }
+
     fn to_i128(&self) -> Option<i128> {
         match self.sign() {
             Sign::Minus | Sign::Plus => self.with_scale(0).int_val.to_i128(),
             Sign::NoSign => Some(0),
         }
     }
+
     fn to_u64(&self) -> Option<u64> {
         match self.sign() {
             Sign::Plus => self.with_scale(0).int_val.to_u64(),
@@ -1727,6 +1728,7 @@ impl ToPrimitive for BigDecimal {
             Sign::Minus => None,
         }
     }
+
     fn to_u128(&self) -> Option<u128> {
         match self.sign() {
             Sign::Plus => self.with_scale(0).int_val.to_u128(),
@@ -2332,14 +2334,14 @@ mod bigdecimal_tests {
     }
 
     #[test]
-    #[should_panic(expected = "Division by zero")]
+    #[should_panic(expected = "attempt to divide by zero")]
     fn test_division_by_zero_panics() {
         let x = BigDecimal::from_str("3.14").unwrap();
         let _r = x / 0;
     }
 
     #[test]
-    #[should_panic(expected = "Division by zero")]
+    #[should_panic(expected = "attempt to divide by zero")]
     fn test_division_by_zero_panics_v2() {
         let x = BigDecimal::from_str("3.14").unwrap();
         let _r = x / BigDecimal::zero();
