@@ -43,8 +43,10 @@
 #![deny(clippy::string_to_string, clippy::str_to_string)]
 
 pub extern crate num_bigint;
-extern crate num_integer;
 pub extern crate num_traits;
+
+extern crate num_integer;
+extern crate thiserror;
 
 #[cfg(feature = "serde")]
 extern crate serde;
@@ -52,7 +54,6 @@ extern crate serde;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::default::Default;
-use std::error::Error;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::Sum;
@@ -63,6 +64,8 @@ use std::str::{self, FromStr};
 use num_bigint::{BigInt, ParseBigIntError, Sign, ToBigInt};
 use num_integer::Integer;
 pub use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
+
+use thiserror::Error as ThisError;
 
 const LOG2_10: f64 = std::f64::consts::LOG2_10;
 
@@ -686,52 +689,27 @@ impl BigDecimal {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(ThisError, Debug, PartialEq, Eq)]
 pub enum ParseBigDecimalError {
-    ParseDecimal(ParseFloatError),
-    ParseInt(ParseIntError),
-    ParseBigInt(ParseBigIntError),
+    #[error(transparent)]
+    ParseDecimal(#[from] ParseFloatError),
+    #[error(transparent)]
+    ParseInt(#[from] ParseIntError),
+    #[error(transparent)]
+    ParseBigInt(#[from] ParseBigIntError),
+
+    #[error("failed to parse empty string")]
     Empty,
+
+    #[error("{0}")]
     Other(String),
 }
 
-impl fmt::Display for ParseBigDecimalError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use ParseBigDecimalError::*;
-
-        match *self {
-            ParseDecimal(ref e) => e.fmt(f),
-            ParseInt(ref e) => e.fmt(f),
-            ParseBigInt(ref e) => e.fmt(f),
-            Empty => "Failed to parse empty string".fmt(f),
-            Other(ref reason) => reason[..].fmt(f),
-        }
-    }
-}
-
-impl Error for ParseBigDecimalError {
-    fn description(&self) -> &str {
-        "failed to parse bigint/biguint"
-    }
-}
-
-impl From<ParseFloatError> for ParseBigDecimalError {
-    fn from(err: ParseFloatError) -> ParseBigDecimalError {
-        ParseBigDecimalError::ParseDecimal(err)
-    }
-}
-
-impl From<ParseIntError> for ParseBigDecimalError {
-    fn from(err: ParseIntError) -> ParseBigDecimalError {
-        ParseBigDecimalError::ParseInt(err)
-    }
-}
-
-impl From<ParseBigIntError> for ParseBigDecimalError {
-    fn from(err: ParseBigIntError) -> ParseBigDecimalError {
-        ParseBigDecimalError::ParseBigInt(err)
-    }
-}
+// impl Error for ParseBigDecimalError {
+//     fn description(&self) -> &str {
+//         "failed to parse bigint/biguint"
+//     }
+// }
 
 impl FromStr for BigDecimal {
     type Err = ParseBigDecimalError;
