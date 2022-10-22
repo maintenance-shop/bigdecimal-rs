@@ -48,17 +48,18 @@ use std::default::Default;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::Sum;
-use std::num::{ParseFloatError, ParseIntError};
 use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
 use std::str::{self, FromStr};
 
-use num_bigint::{BigInt, ParseBigIntError, Sign, ToBigInt};
+use error::ParseBigDecimalError;
+use macros::{forward_primitive_types, forward_ref_val_binop, forward_val_assignop};
+use num_bigint::{BigInt, Sign, ToBigInt};
 use num_integer::Integer;
 pub use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
 
 const LOG2_10: f64 = std::f64::consts::LOG2_10;
 
-#[macro_use]
+mod error;
 mod macros;
 
 #[cfg(feature = "serde")]
@@ -674,29 +675,6 @@ impl BigDecimal {
         BigDecimal::new(int_val, scale)
     }
 }
-
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum ParseBigDecimalError {
-    #[error(transparent)]
-    ParseDecimal(#[from] ParseFloatError),
-    #[error(transparent)]
-    ParseInt(#[from] ParseIntError),
-    #[error(transparent)]
-    ParseBigInt(#[from] ParseBigIntError),
-
-    #[error("failed to parse empty string")]
-    Empty,
-
-    #[error("{0}")]
-    Other(String),
-}
-
-// impl Error for ParseBigDecimalError {
-//     fn description(&self) -> &str {
-//         "failed to parse bigint/biguint"
-//     }
-// }
-
 impl FromStr for BigDecimal {
     type Err = ParseBigDecimalError;
 
@@ -1255,7 +1233,9 @@ impl<'a> MulAssign<&'a BigDecimal> for BigDecimal {
     }
 }
 
-impl_div_for_primitives!();
+forward_primitive_types!(floats);
+forward_primitive_types!(ints);
+forward_primitive_types!(uints);
 
 #[inline(always)]
 fn impl_division(mut num: BigInt, den: &BigInt, mut scale: i64, max_precision: u64) -> BigDecimal {
@@ -2131,7 +2111,7 @@ mod tests {
     #[should_panic(expected = "attempt to divide by zero")]
     fn division_by_zero_panics() {
         let x = BigDecimal::from_str("3.14").unwrap();
-        let _r = x / 0;
+        let _ = x / 0;
     }
 
     #[test]

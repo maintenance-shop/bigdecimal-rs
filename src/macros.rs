@@ -14,8 +14,8 @@ macro_rules! forward_val_val_binop {
         }
     };
 }
-
 */
+
 macro_rules! forward_ref_val_binop {
     (impl $imp:ident for $res:ty, $method:ident) => {
         impl<'a> $imp<$res> for &'a $res {
@@ -227,28 +227,27 @@ macro_rules! impl_div_for_float_primitive {
 }
 
 macro_rules! forward_primitive_types {
-    (floats => $macro_name:ident) => {
-        $macro_name!(f32);
-        $macro_name!(f64);
+    (floats) => {
+        crate::macros::impl_div_for_float_primitive!(f32);
+        crate::macros::impl_div_for_float_primitive!(f64);
     };
-    (ints => $macro_name:ident) => {
-        $macro_name!(i8);
-        $macro_name!(i16);
-        $macro_name!(i32);
-        $macro_name!(i64);
+    (ints) => {
+        crate::macros::impl_div_for_int_primitive!(i8);
+        crate::macros::impl_div_for_int_primitive!(i16);
+        crate::macros::impl_div_for_int_primitive!(i32);
+        crate::macros::impl_div_for_int_primitive!(i64);
     };
-    (uints => $macro_name:ident) => {
-        $macro_name!(u8);
-        $macro_name!(u16);
-        $macro_name!(u32);
-        $macro_name!(u64);
+    (uints) => {
+        crate::macros::impl_div_for_uint_primitive!(u8);
+        crate::macros::impl_div_for_uint_primitive!(u16);
+        crate::macros::impl_div_for_uint_primitive!(u32);
+        crate::macros::impl_div_for_uint_primitive!(u64);
     };
 }
 
-macro_rules! impl_div_for_primitives {
-    () => {
-        forward_primitive_types!(floats => impl_div_for_float_primitive);
-        forward_primitive_types!(ints => impl_div_for_int_primitive);
-        forward_primitive_types!(uints => impl_div_for_uint_primitive);
-    };
-}
+pub(crate) use forward_primitive_types;
+pub(crate) use forward_ref_val_binop;
+pub(crate) use forward_val_assignop;
+pub(crate) use impl_div_for_float_primitive;
+pub(crate) use impl_div_for_int_primitive;
+pub(crate) use impl_div_for_uint_primitive;
