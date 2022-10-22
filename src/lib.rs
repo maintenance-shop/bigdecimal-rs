@@ -51,10 +51,15 @@ use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
 use std::str::{self, FromStr};
 
-use error::ParseBigDecimalError;
 use macros::{forward_primitive_types, forward_ref_val_binop, forward_val_assignop};
-use num_bigint::{BigInt, Sign, ToBigInt};
 use num_integer::Integer;
+
+pub use error::ParseBigDecimalError;
+
+// re-exports
+pub use num_bigint;
+pub use num_bigint::{BigInt, Sign, ToBigInt};
+pub use num_traits;
 pub use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
 
 const LOG2_10: f64 = std::f64::consts::LOG2_10;
@@ -153,7 +158,7 @@ impl BigDecimal {
 
     /// Creates and initializes a [`BigDecimal`].
     ///
-    /// Decodes using `str::from_utf8` and forwards to [`BigDecimal::from_str_radix`].
+    /// Decodes using [`str::from_utf8`] and forwards to [`BigDecimal::from_str_radix`].
     /// Only base-10 is supported.
     ///
     /// # Examples
@@ -1588,7 +1593,7 @@ impl fmt::Debug for BigDecimal {
 impl Num for BigDecimal {
     type FromStrRadixErr = ParseBigDecimalError;
 
-    /// Creates and initializes a BigDecimal.
+    /// Creates and initializes a [`BigDecimal`].
     #[inline]
     fn from_str_radix(s: &str, radix: u32) -> Result<BigDecimal, ParseBigDecimalError> {
         if radix != 10 {
