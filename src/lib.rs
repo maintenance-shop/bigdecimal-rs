@@ -1610,10 +1610,7 @@ impl Num for BigDecimal {
 
                 // special consideration for rust 1.0.0 which would not
                 // parse a leading '+'
-                let exp = match exp.chars().next() {
-                    Some('+') => &exp[1..],
-                    _ => exp,
-                };
+                let exp = exp.strip_prefix('+').unwrap_or(exp);
 
                 (base, i64::from_str(exp)?)
             }
